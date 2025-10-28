@@ -1,0 +1,15 @@
+{
+  "name": "solana-signer",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "@solana/web3.js": "^1.95.4",
+    "bs58": "^5.0.0",
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
+  },
+  "scripts": {
+    "start": "node index.js"
+  }
+}
