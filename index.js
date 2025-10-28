@@ -17,25 +17,33 @@ app.post("/sign", async (req, res) => {
     if (!transaction) return res.status(400).json({ error: "missing transaction" });
     if (!PRIV58) return res.status(500).json({ error: "signer not configured" });
 
-    // на всякий случай убираем пробелы/переносы
-    transaction = String(transaction).replace(/\s+/g, "");
+    // --- sanitize base64 ---
+    transaction = String(transaction).trim();
+    // 
+    transaction = transaction.replace(/\s+/g, "");
+    // 
+    transaction = transaction.replace(/-/g, "+").replace(/_/g, "/");
+    // 
+    const pad = transaction.length % 4;
+    if (pad) transaction = transaction + "=".repeat(4 - pad);
 
     const kp = Keypair.fromSecretKey(bs58.decode(PRIV58));
 
+    let signedBase64;
     try {
-      // v0 (VersionedTransaction)
+      // v0: VersionedTransaction
       const vtx = VersionedTransaction.deserialize(Buffer.from(transaction, "base64"));
       vtx.sign([kp]);
-      const signedBase64 = Buffer.from(vtx.serialize()).toString("base64");
-      return res.json({ signedTransaction: signedBase64 });
-    } catch (_e1) {
+      signedBase64 = Buffer.from(vtx.serialize()).toString("base64");
+    } catch (e1) {
       // fallback: legacy Transaction
       const { Transaction } = await import("@solana/web3.js");
       const tx = Transaction.from(Buffer.from(transaction, "base64"));
       tx.partialSign(kp);
-      const signedBase64 = tx.serialize().toString("base64");
-      return res.json({ signedTransaction: signedBase64 });
+      signedBase64 = tx.serialize().toString("base64");
     }
+
+    return res.json({ signedTransaction: signedBase64 });
   } catch (e) {
     return res.status(500).json({ error: String(e) });
   }
